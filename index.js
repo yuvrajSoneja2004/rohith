@@ -1,47 +1,34 @@
 import express from "express";
-import fs from "fs";
 import jwt from "jsonwebtoken";
 import bodyParser from "body-parser";
 import multer from "multer";
 import cors from "cors";
 
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 const SECRET = "your_jwt_secret"; // change for production
 
 app.use(bodyParser.json());
-app.use("/uploads", express.static("uploads"));
 app.use(cors());
 
-// ---------------------- MULTER SETUP ----------------------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
-const upload = multer({ storage });
+// ---------------------- TEMP IN-MEMORY "DB" ----------------------
+const db = {
+  users: [],
+  products: [],
+};
 
-// ---------------------- DB HELPERS ----------------------
-function readDB() {
-  if (!fs.existsSync("db.json")) {
-    fs.writeFileSync("db.json", JSON.stringify({ users: [], products: [] }, null, 2));
-  }
-  return JSON.parse(fs.readFileSync("db.json", "utf-8"));
-}
-function writeDB(data) {
-  fs.writeFileSync("db.json", JSON.stringify(data, null, 2));
-}
+// ---------------------- MULTER SETUP ----------------------
+const storage = multer.memoryStorage(); // no file system writes
+const upload = multer({ storage });
 
 // ---------------------- LOGIN ----------------------
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const db = readDB();
-  let user = db.users.find((u) => u.email === email);
 
+  let user = db.users.find((u) => u.email === email);
   if (!user) {
-    // Create new user if not found
     user = { id: Date.now().toString(), email, password, name: "", phone: "" };
     db.users.push(user);
-    writeDB(db);
   }
 
   if (user.password !== password) {
@@ -68,7 +55,6 @@ function auth(req, res, next) {
 
 // ---------------------- GET PRODUCTS ----------------------
 app.get("/products", auth, (req, res) => {
-  const db = readDB();
   res.json(db.products);
 });
 
@@ -76,11 +62,9 @@ app.get("/products", auth, (req, res) => {
 app.post("/products", auth, upload.array("images", 5), (req, res) => {
   const { name, price, description, location, userName, userPhone } = req.body;
 
-  const imagePaths = req.files.map(
-    (f) => `${req.protocol}://${req.get("host")}/uploads/${f.filename}`
-  );
+  // Simulate image URLs
+  const imagePaths = req.files.map((f, i) => `https://fakeimg.pl/300x200/?text=Image+${i + 1}`);
 
-  const db = readDB();
   const product = {
     id: Date.now().toString(),
     name,
@@ -96,8 +80,6 @@ app.post("/products", auth, upload.array("images", 5), (req, res) => {
   };
 
   db.products.push(product);
-  writeDB(db);
-
   res.json({ message: "Product created", product });
 });
 
@@ -106,13 +88,12 @@ app.put("/products/:id", auth, upload.array("images", 5), (req, res) => {
   const { id } = req.params;
   const { name, price, description, location, userName, userPhone } = req.body;
 
-  const db = readDB();
   const index = db.products.findIndex((p) => p.id === id);
   if (index === -1) return res.status(404).json({ message: "Product not found" });
 
   const existing = db.products[index];
   const newImages = req.files.length
-    ? req.files.map((f) => `${req.protocol}://${req.get("host")}/uploads/${f.filename}`)
+    ? req.files.map((f, i) => `https://fakeimg.pl/300x200/?text=Updated+${i + 1}`)
     : existing.images;
 
   db.products[index] = {
@@ -129,29 +110,16 @@ app.put("/products/:id", auth, upload.array("images", 5), (req, res) => {
     },
   };
 
-  writeDB(db);
   res.json({ message: "Product updated", product: db.products[index] });
 });
 
 // ---------------------- DELETE PRODUCT ----------------------
 app.delete("/products/:id", auth, (req, res) => {
   const { id } = req.params;
-  const db = readDB();
   const index = db.products.findIndex((p) => p.id === id);
   if (index === -1) return res.status(404).json({ message: "Product not found" });
 
-  // optional: delete image files from /uploads
-  const product = db.products[index];
-  product.images.forEach((imgUrl) => {
-    const filePath = imgUrl.split("/uploads/")[1];
-    if (filePath && fs.existsSync(`uploads/${filePath}`)) {
-      fs.unlinkSync(`uploads/${filePath}`);
-    }
-  });
-
   db.products.splice(index, 1);
-  writeDB(db);
-
   res.json({ message: "Product deleted" });
 });
 
