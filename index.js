@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import bodyParser from "body-parser";
 import multer from "multer";
 import cors from "cors";
-
+//lol
 const app = express();
 const PORT = process.env.PORT || 4000;
 const SECRET = "your_jwt_secret"; // change for production
