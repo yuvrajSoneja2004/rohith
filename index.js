@@ -92,8 +92,10 @@ app.put("/products/:id", auth, upload.array("images", 5), (req, res) => {
   if (index === -1) return res.status(404).json({ message: "Product not found" });
 
   const existing = db.products[index];
-  const newImages = req.files.length
-    ? req.files.map((f, i) => `https://fakeimg.pl/300x200/?text=Updated+${i + 1}`)
+  const newImages = req.files?.length
+    ? req.files.map(
+        (f, i) => `https://fakeimg.pl/300x200/?text=Updated+${i + 1}`
+      )
     : existing.images;
 
   db.products[index] = {
