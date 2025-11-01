@@ -1,7 +1,6 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import bodyParser from "body-parser";
-import multer from "multer";
 import cors from "cors";
 //lol
 const app = express();
@@ -54,10 +53,6 @@ const db = {
   ],
 };
 
-// ---------------------- MULTER SETUP ----------------------
-const storage = multer.memoryStorage(); // no file system writes
-const upload = multer({ storage });
-
 // ---------------------- LOGIN ----------------------
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
@@ -98,13 +93,14 @@ app.get("/products", auth, (req, res) => {
 });
 
 // ---------------------- CREATE PRODUCT ----------------------
-app.post("/products", auth, upload.array("images", 5), (req, res) => {
+app.post("/products", auth, (req, res) => {
   const { name, price, description, location, userName, userPhone } = req.body;
 
   // Simulate image URLs
-  const imagePaths = req.files.map(
-    (f, i) => `https://fakeimg.pl/300x200/?text=Image+${i + 1}`
-  );
+  const imagePaths = [
+    `https://fakeimg.pl/300x200/?text=Product+${Date.now()}+1`,
+    `https://fakeimg.pl/300x200/?text=Product+${Date.now()}+2`,
+  ];
 
   const product = {
     id: Date.now().toString(),
@@ -125,7 +121,7 @@ app.post("/products", auth, upload.array("images", 5), (req, res) => {
 });
 // lol
 // ---------------------- UPDATE PRODUCT ----------------------
-app.put("/products/:id", auth, upload.array("images", 5), (req, res) => {
+app.put("/products/:id", auth, (req, res) => {
   const { id } = req.params;
   const { name, price, description, location, userName, userPhone } = req.body;
 
@@ -134,11 +130,10 @@ app.put("/products/:id", auth, upload.array("images", 5), (req, res) => {
     return res.status(404).json({ message: "Product not found" });
 
   const existing = db.products[index];
-  const newImages = req.files?.length
-    ? req.files.map(
-        (f, i) => `https://fakeimg.pl/300x200/?text=Updated+${i + 1}`
-      )
-    : existing.images;
+  const newImages = [
+    `https://fakeimg.pl/300x200/?text=Updated+${Date.now()}+1`,
+    `https://fakeimg.pl/300x200/?text=Updated+${Date.now()}+2`,
+  ];
 
   db.products[index] = {
     ...existing,
