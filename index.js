@@ -98,8 +98,8 @@ app.post("/products", auth, (req, res) => {
 
   // Simulate image URLs
   const imagePaths = [
-    `https://fakeimg.pl/300x200/?text=Product+${Date.now()}+1`,
-    `https://fakeimg.pl/300x200/?text=Product+${Date.now()}+2`,
+    `https://picsum.photos/200/300`,
+    `https://picsum.photos/200/300`,
   ];
 
   const product = {
