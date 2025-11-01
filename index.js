@@ -13,8 +13,45 @@ app.use(cors());
 
 // ---------------------- TEMP IN-MEMORY "DB" ----------------------
 const db = {
-  users: [],
-  products: [],
+  users: [
+    {
+      id: "1",
+      email: "test1@example.com",
+      password: "password123",
+      name: "Test User 1",
+      phone: "111-222-3333",
+    },
+    {
+      id: "2",
+      email: "test2@example.com",
+      password: "password123",
+      name: "Test User 2",
+      phone: "444-555-6666",
+    },
+  ],
+  products: [
+    {
+      id: "101",
+      name: "Vintage Camera",
+      price: "250.00",
+      description: "A beautiful vintage camera in excellent condition.",
+      location: "New York, NY",
+      images: [
+        "https://fakeimg.pl/300x200/?text=Camera+1",
+        "https://fakeimg.pl/300x200/?text=Camera+2",
+      ],
+      user: { id: "1", name: "Test User 1", phone: "111-222-3333" },
+    },
+    {
+      id: "102",
+      name: "Leather Journal",
+      price: "30.00",
+      description: "Handmade leather journal with blank pages.",
+      location: "Los Angeles, CA",
+      images: ["https://fakeimg.pl/300x200/?text=Journal+1"],
+      user: { id: "2", name: "Test User 2", phone: "444-555-6666" },
+    },
+  ],
 };
 
 // ---------------------- MULTER SETUP ----------------------
@@ -35,7 +72,9 @@ app.post("/login", (req, res) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
-  const token = jwt.sign({ id: user.id, email: user.email }, SECRET, { expiresIn: "2h" });
+  const token = jwt.sign({ id: user.id, email: user.email }, SECRET, {
+    expiresIn: "2h",
+  });
   res.json({ token });
 });
 
@@ -63,7 +102,9 @@ app.post("/products", auth, upload.array("images", 5), (req, res) => {
   const { name, price, description, location, userName, userPhone } = req.body;
 
   // Simulate image URLs
-  const imagePaths = req.files.map((f, i) => `https://fakeimg.pl/300x200/?text=Image+${i + 1}`);
+  const imagePaths = req.files.map(
+    (f, i) => `https://fakeimg.pl/300x200/?text=Image+${i + 1}`
+  );
 
   const product = {
     id: Date.now().toString(),
@@ -82,14 +123,15 @@ app.post("/products", auth, upload.array("images", 5), (req, res) => {
   db.products.push(product);
   res.json({ message: "Product created", product });
 });
-
+// lol
 // ---------------------- UPDATE PRODUCT ----------------------
 app.put("/products/:id", auth, upload.array("images", 5), (req, res) => {
   const { id } = req.params;
   const { name, price, description, location, userName, userPhone } = req.body;
 
   const index = db.products.findIndex((p) => p.id === id);
-  if (index === -1) return res.status(404).json({ message: "Product not found" });
+  if (index === -1)
+    return res.status(404).json({ message: "Product not found" });
 
   const existing = db.products[index];
   const newImages = req.files?.length
